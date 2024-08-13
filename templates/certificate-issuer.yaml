@@ -1,0 +1,13 @@
+{{- if (.Capabilities.APIVersions.Has "cert-manager.io/v1/Certificate" ) }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  annotations:
+    {{- include "infinispan-helm-charts.annotations" . | nindent 4 }}
+  labels:
+    app: infinispan-endpoint-cert
+    {{- include "infinispan-helm-charts.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+{{- end }}
