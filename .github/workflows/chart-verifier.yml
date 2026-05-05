@@ -4,17 +4,17 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - main
 jobs:
   verify-chart:
     name: Verify Helm Chart
     runs-on: ubuntu-latest
+    env:
+      KUBECONFIG: ${{ github.workspace }}/.kube/config
     steps:
       - uses: actions/checkout@v6
 
       # Install helm CLI
-      - uses: azure/setup-helm@v3.4
+      - uses: azure/setup-helm@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
         id: install
@@ -35,22 +35,16 @@ jobs:
           chart-verifier: latest
 
       - name: Create k8s Kind Cluster
-        env:
-          KUBECONFIG: ${{ github.workspace }}/.kube/config
-        uses: helm/kind-action@v1.3.0
+        uses: helm/kind-action@v1
         with:
           node_image: kindest/node:v1.21.14
 
       - name: Print Kube context info
-        env:
-          KUBECONFIG: ${{ github.workspace }}/.kube/config
         run: |
           echo $KUBECONFIG
 
       # Verify the packaged chart
       - uses: redhat-actions/chart-verifier@v1.3
-        env:
-          KUBECONFIG: ${{ github.workspace }}/.kube/config
         with:
           chart_uri: ${{ steps.package.outputs.chart_file }}
           fail: false
@@ -64,11 +58,11 @@ jobs:
           NON_CERT_ERRORS=$(jq -r '.results.message[]? | select(contains("Image is not Red Hat certified") | not)' "$REPORT_FILE" 2>/dev/null || echo "")
           
           if [ -n "$NON_CERT_ERRORS" ]; then
-            echo "❌ Found non-certification errors:"
+            echo "❌ Unexpected errors found:"
             echo "$NON_CERT_ERRORS"
             exit 1
           else
-            echo "✅ No non-certification errors found"
+            echo "✅ No unexpected errors"
           fi
 
       # Upload chart-verifier report as artifact
