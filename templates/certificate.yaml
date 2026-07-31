@@ -1,10 +1,15 @@
----
-{{- if and ( .Capabilities.APIVersions.Has "cert-manager.io/v1/Certificate" ) (.Values.deploy.ssl.certmanager.enabled) }}
+{{- $name := include "infinispan-helm-charts.name" . }}
 {{- if .Values.deploy.ssl.certmanager.endpoint.enabled }}
+{{- if not (.Capabilities.APIVersions.Has "cert-manager.io/v1/Certificate") }}
+{{- fail "deploy.ssl.certmanager.endpoint.enabled is true but cert-manager CRDs are not installed in the cluster" }}
+{{- end }}
+{{- if not .Values.deploy.ssl.endpointSecretName }}
+{{- fail "deploy.ssl.endpointSecretName must be set when certmanager.endpoint is enabled" }}
+{{- end }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ printf "%s-endpoint-cert" (include "infinispan-helm-charts.name" .) }}
+  name: {{ printf "%s-endpoint-cert" $name }}
   annotations:
     {{- include "infinispan-helm-charts.annotations" . | nindent 4 }}
   labels:
@@ -12,24 +17,47 @@ metadata:
     {{- include "infinispan-helm-charts.labels" . | nindent 4 }}
 spec:
   secretName: {{ .Values.deploy.ssl.endpointSecretName }}
-  commonName: infinispan
+  commonName: {{ $name }}
   dnsNames:
-    - infinispan
-    - infinispan.{{ .Release.Namespace }}
-    - {{ printf "%s-ping.%s.svc.%s" (include "infinispan-helm-charts.name" .) .Release.Namespace .Values.deploy.clusterDomain }}
-    - infinispan.{{ .Release.Namespace }}.{{ .Values.deploy.clusterDomain }}
-  issuerRef:
-    {{- with $_ := .Values.deploy.ssl.certmanager.issuerRef }}
+    - {{ $name }}
+    - {{ printf "%s.%s" $name .Release.Namespace }}
+    - {{ printf "%s.%s.svc.%s" $name .Release.Namespace .Values.deploy.clusterDomain }}
+    - {{ printf "%s-ping.%s.svc.%s" $name .Release.Namespace .Values.deploy.clusterDomain }}
+    {{- if .Values.deploy.expose.host }}
+    - {{ .Values.deploy.expose.host | quote }}
+    {{- end }}
+    {{- with .Values.deploy.ssl.certmanager.endpoint.additionalDnsNames }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
+  {{- if .Values.deploy.ssl.certmanager.endpoint.issuerRef }}
+  issuerRef:
+    {{- toYaml .Values.deploy.ssl.certmanager.endpoint.issuerRef | nindent 4 }}
+  {{- else }}
+  issuerRef:
+    name: {{ printf "%s-selfsigned-issuer" $name }}
+    kind: Issuer
+  {{- end }}
+  {{- if .Values.deploy.ssl.certmanager.endpoint.keystorePassword }}
+  keystores:
+    pkcs12:
+      create: true
+      passwordSecretRef:
+        name: {{ printf "%s-endpoint-keystore-password" $name }}
+        key: password
+  {{- end }}
 {{- end }}
-
 ---
 {{- if .Values.deploy.ssl.certmanager.transport.enabled }}
+{{- if not (.Capabilities.APIVersions.Has "cert-manager.io/v1/Certificate") }}
+{{- fail "deploy.ssl.certmanager.transport.enabled is true but cert-manager CRDs are not installed in the cluster" }}
+{{- end }}
+{{- if not .Values.deploy.ssl.transportSecretName }}
+{{- fail "deploy.ssl.transportSecretName must be set when certmanager.transport is enabled" }}
+{{- end }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ printf "%s-transport-cert" (include "infinispan-helm-charts.name" .) }}
+  name: {{ printf "%s-transport-cert" $name }}
   annotations:
     {{- include "infinispan-helm-charts.annotations" . | nindent 4 }}
   labels:
@@ -37,15 +65,29 @@ metadata:
     {{- include "infinispan-helm-charts.labels" . | nindent 4 }}
 spec:
   secretName: {{ .Values.deploy.ssl.transportSecretName }}
-  commonName: infinispan
+  commonName: {{ $name }}
   dnsNames:
-    - infinispan
-    - infinispan.{{ .Release.Namespace }}
-    - {{ printf "%s-ping.%s.svc.%s" (include "infinispan-helm-charts.name" .) .Release.Namespace .Values.deploy.clusterDomain }}
-    - infinispan.{{ .Release.Namespace }}.{{ .Values.deploy.clusterDomain }}
-  issuerRef:
-    {{- with $_ := .Values.deploy.ssl.certmanager.issuerRef }}
+    - {{ $name }}
+    - {{ printf "%s.%s" $name .Release.Namespace }}
+    - {{ printf "%s.%s.svc.%s" $name .Release.Namespace .Values.deploy.clusterDomain }}
+    - {{ printf "%s-ping.%s.svc.%s" $name .Release.Namespace .Values.deploy.clusterDomain }}
+    {{- with .Values.deploy.ssl.certmanager.transport.additionalDnsNames }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-{{- end }}
+  {{- if .Values.deploy.ssl.certmanager.transport.issuerRef }}
+  issuerRef:
+    {{- toYaml .Values.deploy.ssl.certmanager.transport.issuerRef | nindent 4 }}
+  {{- else }}
+  issuerRef:
+    name: {{ printf "%s-selfsigned-issuer" $name }}
+    kind: Issuer
+  {{- end }}
+  {{- if .Values.deploy.ssl.certmanager.transport.keystorePassword }}
+  keystores:
+    pkcs12:
+      create: true
+      passwordSecretRef:
+        name: {{ printf "%s-transport-keystore-password" $name }}
+        key: password
+  {{- end }}
 {{- end }}

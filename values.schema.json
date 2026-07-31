@@ -197,48 +197,73 @@
                   "endpointSecretName"
                   ],
                   "properties": {
-                      "endPointSecretName": {
-                          "description": "Specifies the name of a secret that contains TLS certificate",
+                      "endpointSecretName": {
+                          "description": "Specifies the name of the secret that contains the TLS certificate for endpoint encryption",
                           "type": [
                               "string",
                               "null"
                           ]
                       },
                       "transportSecretName": {
-                          "description": "Specifies the name of a secret that contains TLS certificate",
+                          "description": "Specifies the name of the secret that contains the TLS certificate for transport encryption",
                           "type": [
                               "string",
                               "null"
                           ]
                       },
                       "certmanager": {
+                          "description": "cert-manager integration for automatic TLS certificate issuing",
                           "type": "object",
                           "properties": {
-                            "enabled": {
-                                "description": "Specifies the name of a secret that contains TLS certificate",
-                                "type": "boolean"
-                            },
                             "endpoint": {
-                                "description": "Cert manager sepc",
+                                "description": "cert-manager configuration for the endpoint certificate",
                                 "type": "object",
                                 "properties": {
                                     "enabled": {
-                                        "description": "Specify if certmanager should create the secret",
+                                        "description": "Enable cert-manager to create the endpoint TLS secret",
                                         "type": "boolean"
+                                    },
+                                    "issuerRef": {
+                                        "description": "Reference to an existing Issuer or ClusterIssuer. If omitted, a self-signed Issuer is created",
+                                        "type": "object"
+                                    },
+                                    "keystorePassword": {
+                                        "description": "Password for PKCS12 keystore. If provided, cert-manager generates a keystore.p12 in the secret",
+                                        "type": "string"
+                                    },
+                                    "additionalDnsNames": {
+                                        "description": "Additional DNS names to include in the certificate",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
                                     }
-                                },
-                                "additionalProperties": true
+                                }
                             },
                             "transport": {
-                                "description": "Cert manager spec",
+                                "description": "cert-manager configuration for the transport certificate",
                                 "type": "object",
                                 "properties": {
                                     "enabled": {
-                                        "description": "Specifies if certmanager should create the secret",
+                                        "description": "Enable cert-manager to create the transport TLS secret",
                                         "type": "boolean"
+                                    },
+                                    "issuerRef": {
+                                        "description": "Reference to an existing Issuer or ClusterIssuer. If omitted, a self-signed Issuer is created",
+                                        "type": "object"
+                                    },
+                                    "keystorePassword": {
+                                        "description": "Password for PKCS12 keystore. If provided, cert-manager generates a keystore.p12 in the secret",
+                                        "type": "string"
+                                    },
+                                    "additionalDnsNames": {
+                                        "description": "Additional DNS names to include in the certificate",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
                                     }
-                                },
-                                "additionalProperties": true
+                                }
                             }
                           }
                       }

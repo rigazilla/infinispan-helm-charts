@@ -55,11 +55,94 @@ Configure your Infinispan cluster by specifying values in the `deploy.*` section
 | `deploy.securityContext` | Defines the securityContext settings used by the cluster's StatefulSet | `{}` | - |
 | `deploy.ssl.endpointSecretName` | Specifies the name of the secret that contains certificate for endpoint encryption | `""` | - |
 | `deploy.ssl.transportSecretName` | Specifies the name of the secret that contains certificate for transport encryption | `""` | - |
-| `deploy.ssl.certmanager.enabled` | Specifies if cert-manager should be used to issue certificates | `false` | - |
-| `deploy.ssl.certmanager.endpoint.enabled` | Switch to enable cert manager for creating secret endpointSecretName | `false` | - |
-| `deploy.ssl.certmanager.endpoint` | Cert manager specifications, like issueRef, commonName and others | `{}` | - |
-| `deploy.ssl.certmanager.transport.enabled` | Switch to enable cert manager for creating secret transportSecretName | `false` | - |
-| `deploy.ssl.certmanager.transport` | Cert manager specifications, like issueRef, commonName and others | `{}` | - |
+| `deploy.ssl.certmanager.endpoint.enabled` | Enable cert-manager to create the endpoint TLS secret | `false` | Requires cert-manager to be installed. Uses `deploy.ssl.endpointSecretName` as the secret name. |
+| `deploy.ssl.certmanager.endpoint.issuerRef` | Reference to an existing Issuer or ClusterIssuer | - | If omitted, a self-signed Issuer is created automatically. |
+| `deploy.ssl.certmanager.endpoint.keystorePassword` | Password for PKCS12 keystore generation | - | If provided, cert-manager generates a `keystore.p12` in the secret. |
+| `deploy.ssl.certmanager.endpoint.additionalDnsNames` | Additional DNS names to include in the certificate | `[]` | Internal DNS names are computed automatically. |
+| `deploy.ssl.certmanager.transport.enabled` | Enable cert-manager to create the transport TLS secret | `false` | Requires cert-manager to be installed. Uses `deploy.ssl.transportSecretName` as the secret name. |
+| `deploy.ssl.certmanager.transport.issuerRef` | Reference to an existing Issuer or ClusterIssuer | - | If omitted, a self-signed Issuer is created automatically. |
+| `deploy.ssl.certmanager.transport.keystorePassword` | Password for PKCS12 keystore generation | - | If provided, cert-manager generates a `keystore.p12` in the secret. |
+| `deploy.ssl.certmanager.transport.additionalDnsNames` | Additional DNS names to include in the certificate | `[]` | Internal DNS names are computed automatically. |
 | `deploy.volumeMounts` | Add custome volume mounts to infinispan | `[]` | - |
 | `deploy.volumes` | Add custome volumes to infinispan | `[]` | - |
 | `deploy.infinispan` | Infinispan Server configuration. | - | You should not change the default socket bindings or the security realm and endpoints named "metrics". Modifying these default properties can result in unexpected behavior and loss of service. |
+
+## Cert-Manager Integration
+
+This chart can automatically create TLS certificates using [cert-manager](https://cert-manager.io/).
+Cert-manager must be installed in your cluster before enabling this feature.
+
+### Basic Usage
+
+To enable cert-manager for endpoint TLS, set the following values:
+
+```yaml
+deploy:
+  ssl:
+    endpointSecretName: "my-endpoint-cert"
+    certmanager:
+      endpoint:
+        enabled: true
+```
+
+This creates a `Certificate` resource that provisions the secret specified by `endpointSecretName`.
+DNS names for the certificate are computed automatically from the release name, namespace, and cluster domain.
+
+### Custom Issuer
+
+By default, a self-signed `Issuer` is created automatically. To use your own Issuer or ClusterIssuer:
+
+```yaml
+deploy:
+  ssl:
+    certmanager:
+      endpoint:
+        enabled: true
+        issuerRef:
+          name: my-issuer
+          kind: ClusterIssuer
+```
+
+### PKCS12 Keystore
+
+To include a PKCS12 keystore in the generated secret:
+
+```yaml
+deploy:
+  ssl:
+    certmanager:
+      endpoint:
+        enabled: true
+        keystorePassword: "changeit"
+```
+
+### Transport TLS
+
+Transport TLS secures internal cluster communication and can be enabled independently:
+
+```yaml
+deploy:
+  ssl:
+    endpointSecretName: "my-endpoint-cert"
+    transportSecretName: "my-transport-cert"
+    certmanager:
+      endpoint:
+        enabled: true
+      transport:
+        enabled: true
+```
+
+### Additional DNS Names
+
+To add custom DNS names beyond the auto-computed entries:
+
+```yaml
+deploy:
+  ssl:
+    certmanager:
+      endpoint:
+        enabled: true
+        additionalDnsNames:
+          - "custom.example.com"
+          - "*.example.com"
+```

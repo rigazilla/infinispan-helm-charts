@@ -1,0 +1,46 @@
+deploy:
+  security:
+    batch: |-
+      credentials add keystore -c changeit -p secret --path="internal-credentials.pfx"
+  ssl:
+    endpointSecretName: "endpoint-cert-tls"
+    certmanager:
+      endpoint:
+        enabled: true
+        keystorePassword: "changeit"
+  infinispan:
+    cacheContainer:
+      transport:
+         stack: "kubernetes"
+    server:
+      security:
+        credentialStores:
+          - name: credentials
+            path: internal-credentials.pfx
+            clearTextCredential:
+              clearText: "secret"
+        securityRealms:
+        - name: default
+          propertiesRealm:
+            groupProperties:
+              path: groups.properties
+            groupsAttribute: Roles
+            userProperties:
+              path: users.properties
+          serverIdentities:
+            ssl:
+              keystore:
+                alias: "1"
+                path: "/etc/encrypt/endpoint/keystore.p12"
+                credentialReference:
+                  store: credentials
+                  alias: keystore
+        - name: metrics
+          propertiesRealm:
+            groupProperties:
+              path: metrics-groups.properties
+              relativeTo: infinispan.server.config.path
+            groupsAttribute: Roles
+            userProperties:
+              path: metrics-users.properties
+              relativeTo: infinispan.server.config.path

@@ -203,7 +203,4 @@ spec:
         resources:
           requests:
             storage: {{ .Values.deploy.container.storage.size }}
-    {{- with .Values.deploy.volumeClaimTemplates }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
   {{- end }}

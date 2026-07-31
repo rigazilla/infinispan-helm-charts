@@ -122,15 +122,20 @@ deploy:
   ssl:
     endpointSecretName: ""
     transportSecretName: ""
+    # [USER] Use cert-manager to automatically issue TLS certificates.
+    # Requires cert-manager to be installed in the cluster.
     certmanager:
-      enabled: false
       endpoint:
         enabled: false
-        # docs https://cert-manager.io/docs/usage/certificate/
-        #issuerRef:
-        #  name: selfsigned
-        #  kind: ClusterIssuer
-        # commonName: 'example-infinispan'
+        # [USER] Provide an issuerRef to use your own Issuer/ClusterIssuer.
+        # If omitted, a self-signed Issuer is created automatically.
+        # issuerRef:
+        #   name: my-issuer
+        #   kind: ClusterIssuer
+        # [USER] Provide a password to include a PKCS12 keystore in the secret.
+        # keystorePassword: "changeit"
+        # [USER] Additional DNS names to include in the certificate.
+        # additionalDnsNames: []
       transport:
         enabled: false
 

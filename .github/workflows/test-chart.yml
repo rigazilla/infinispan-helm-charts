@@ -21,7 +21,7 @@ jobs:
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1
         with:
-          node_image: kindest/node:v1.21.14
+          node_image: kindest/node:v1.25.16
 
       - name: Display cluster settings
         run: |
@@ -44,6 +44,22 @@ jobs:
             kubectl apply -f test/tls_secret.yaml -n helm-test
             kubectl apply -f test/transport_tls_secret.yaml -n helm-test
             helm install example-infinispan . -n helm-test -f values.yaml -f test/tls_values.snippet.yaml --set deploy.replicas=2
+            kubectl -n helm-test rollout status --watch --timeout=300s statefulset/example-infinispan
+            helm uninstall example-infinispan -n helm-test
+            kubectl delete namespace helm-test
+
+      - name: Install cert-manager
+        run: |
+            kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.2/cert-manager.yaml
+            kubectl -n cert-manager rollout status --watch --timeout=120s deployment/cert-manager
+            kubectl -n cert-manager rollout status --watch --timeout=120s deployment/cert-manager-webhook
+            kubectl -n cert-manager rollout status --watch --timeout=120s deployment/cert-manager-cainjector
+
+      - name: Testing cert-manager TLS
+        run: |
+            kubectl create namespace helm-test
+            helm install example-infinispan . -n helm-test -f values.yaml -f test/certmanager_tls_values.snippet.yaml --set deploy.replicas=2
+            kubectl -n helm-test wait --for=condition=Ready certificate/example-infinispan-endpoint-cert --timeout=120s
             kubectl -n helm-test rollout status --watch --timeout=300s statefulset/example-infinispan
             helm uninstall example-infinispan -n helm-test
             kubectl delete namespace helm-test

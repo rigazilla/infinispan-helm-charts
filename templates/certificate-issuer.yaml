@@ -1,13 +1,22 @@
-{{- if (.Capabilities.APIVersions.Has "cert-manager.io/v1/Certificate" ) }}
+{{- if .Capabilities.APIVersions.Has "cert-manager.io/v1/Issuer" }}
+{{- $needsIssuer := false }}
+{{- if and .Values.deploy.ssl.certmanager.endpoint.enabled (not .Values.deploy.ssl.certmanager.endpoint.issuerRef) }}
+  {{- $needsIssuer = true }}
+{{- end }}
+{{- if and .Values.deploy.ssl.certmanager.transport.enabled (not .Values.deploy.ssl.certmanager.transport.issuerRef) }}
+  {{- $needsIssuer = true }}
+{{- end }}
+{{- if $needsIssuer }}
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: selfsigned-issuer
+  name: {{ printf "%s-selfsigned-issuer" (include "infinispan-helm-charts.name" .) }}
   annotations:
     {{- include "infinispan-helm-charts.annotations" . | nindent 4 }}
   labels:
-    app: infinispan-endpoint-cert
+    app: infinispan-cert-issuer
     {{- include "infinispan-helm-charts.labels" . | nindent 4 }}
 spec:
   selfSigned: {}
+{{- end }}
 {{- end }}
